@@ -17,7 +17,7 @@ export default function CTASection() {
           contribute your own neighbourhood knowledge to the platform.
         </p>
         <div className="cta-actions">
-          <Link href="/form" className="btn-light">
+          <Link href="/neighbourhood" className="btn-light">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path
                 d="M2 7a5 5 0 1 0 10 0A5 5 0 0 0 2 7z"
