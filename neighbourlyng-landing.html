@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NeighbourlyNG — Know Before You Move</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F4F2EE;
+    --surface: #ECEAE4;
+    --surface2: #E2DFD8;
+    --ink: #111110;
+    --ink2: #3A3935;
+    --ink3: #706E68;
+    --accent: #1A6B3C;
+    --accent2: #2D9E5F;
+    --accent-pale: #D4EDDF;
+    --warn: #C94E1A;
+    --warn-pale: #FAE4D8;
+    --data1: #1A6B3C;
+    --data2: #2563EB;
+    --data3: #C94E1A;
+    --data4: #7C3AED;
+    --border: rgba(17,17,16,0.10);
+    --border-strong: rgba(17,17,16,0.18);
+    --shadow: 0 1px 3px rgba(17,17,16,0.08), 0 4px 16px rgba(17,17,16,0.06);
+    --shadow-lg: 0 4px 8px rgba(17,17,16,0.06), 0 16px 48px rgba(17,17,16,0.12);
+    --radius: 10px;
+    --radius-lg: 16px;
+    --mono: 'DM Mono', monospace;
+    --display: 'Syne', sans-serif;
+    --body: 'DM Sans', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--body);
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px;
+    height: 60px;
+    background: rgba(244,242,238,0.88);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: var(--display);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    display: flex; align-items: center; gap: 8px;
+    text-decoration: none;
+  }
+  .nav-logo-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .nav-links {
+    display: flex; align-items: center; gap: 32px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-size: 13px; font-weight: 400; letter-spacing: 0.01em;
+    color: var(--ink2); text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta {
+    background: var(--ink) !important;
+    color: var(--bg) !important;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-weight: 500 !important;
+    transition: background 0.2s, transform 0.15s !important;
+  }
+  .nav-cta:hover { background: var(--accent) !important; transform: translateY(-1px); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    padding: 60px 40px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(to bottom, transparent, rgba(0,0,0,0.3) 20%, rgba(0,0,0,0.3) 70%, transparent);
+    pointer-events: none;
+  }
+  .hero-inner {
+    flex: 1;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 80px 0 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    position: relative;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accent-pale);
+    border: 1px solid rgba(26,107,60,0.2);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 100px;
+    width: fit-content;
+    margin-bottom: 28px;
+    animation: fadeUp 0.6s ease both;
+  }
+  .hero-badge-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent); animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+
+  .hero-headline {
+    font-family: var(--display);
+    font-size: clamp(44px, 6.5vw, 88px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    color: var(--ink);
+    max-width: 760px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .hero-headline em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero-sub {
+    font-size: 17px;
+    font-weight: 300;
+    color: var(--ink2);
+    line-height: 1.65;
+    max-width: 480px;
+    margin-top: 24px;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+  .hero-actions {
+    display: flex; align-items: center; gap: 12px;
+    margin-top: 36px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink);
+    color: var(--bg);
+    font-family: var(--body);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    border: none; cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-primary:hover { background: var(--accent); transform: translateY(-2px); }
+  .btn-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent;
+    color: var(--ink2);
+    font-family: var(--body);
+    font-size: 14px;
+    font-weight: 400;
+    padding: 12px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    border: 1px solid var(--border-strong);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, transform 0.15s;
+  }
+  .btn-secondary:hover { border-color: var(--ink); color: var(--ink); transform: translateY(-2px); }
+
+  .hero-stats {
+    display: flex; gap: 32px;
+    margin-top: 56px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-num {
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+  }
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink3);
+  }
+
+  /* FLOATING MAP CARD */
+  .hero-visual {
+    position: absolute;
+    right: -20px; top: 50%;
+    transform: translateY(-44%);
+    width: 520px;
+    animation: fadeUp 0.7s 0.35s ease both;
+  }
+  @media (max-width: 1100px) { .hero-visual { display: none; } }
+
+  .map-card {
+    background: #fff;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+  .map-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .map-card-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink2);
+    font-weight: 500;
+  }
+  .map-card-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: var(--accent-pale);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .map-body {
+    position: relative;
+    height: 280px;
+    background: #E8EEF4;
+    overflow: hidden;
+  }
+  /* Fake map tiles */
+  .map-tile {
+    position: absolute;
+    border-radius: 4px;
+    opacity: 0.7;
+  }
+  .map-roads {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  /* Heatmap zones */
+  .zone {
+    position: absolute; border-radius: 50%;
+    filter: blur(28px);
+  }
+  .zone-green { background: rgba(26,107,60,0.35); width: 160px; height: 160px; top: 20px; left: 80px; }
+  .zone-orange { background: rgba(201,78,26,0.30); width: 130px; height: 130px; top: 80px; right: 40px; }
+  .zone-blue { background: rgba(37,99,235,0.25); width: 120px; height: 120px; bottom: 20px; left: 40px; }
+  .zone-yellow { background: rgba(234,179,8,0.30); width: 100px; height: 100px; bottom: 30px; right: 80px; }
+
+  .map-pin {
+    position: absolute;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 0;
+    cursor: pointer;
+  }
+  .map-pin-bubble {
+    background: #fff;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .map-pin-bubble .score { color: var(--accent); font-weight: 500; }
+  .map-pin-bubble .score.warn { color: var(--warn); }
+  .map-pin-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px var(--accent);
+    margin-top: 3px;
+  }
+  .map-pin-dot.warn {
+    background: var(--warn);
+    box-shadow: 0 0 0 2px var(--warn);
+  }
+
+  .map-legend {
+    padding: 12px 18px;
+    display: flex; gap: 16px;
+    border-top: 1px solid var(--border);
+    background: #fff;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    color: var(--ink3);
+  }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+
+  /* SCORECARD MINI */
+  .map-scorecard {
+    position: absolute;
+    top: 12px; right: 14px;
+    background: rgba(255,255,255,0.96);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    width: 155px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  }
+  .scorecard-area {
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .scorecard-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 7px;
+  }
+  .scorecard-row:last-child { margin-bottom: 0; }
+  .scorecard-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink3);
+  }
+  .scorecard-bar-wrap {
+    display: flex; align-items: center; gap: 5px;
+  }
+  .scorecard-bar {
+    width: 50px; height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .scorecard-bar-fill {
+    height: 100%; border-radius: 2px;
+    background: var(--accent);
+    transition: width 1s ease;
+  }
+  .scorecard-bar-fill.warn { background: var(--warn); }
+  .scorecard-bar-fill.mid { background: #D97706; }
+  .scorecard-val {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--ink2);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SECTION COMMONS */
+  section { padding: 96px 40px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::before {
+    content: '';
+    display: block; width: 20px; height: 1px;
+    background: var(--ink3);
+  }
+  .section-title {
+    font-family: var(--display);
+    font-size: clamp(28px, 3.5vw, 44px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--ink);
+  }
+  .section-title em { font-style: normal; color: var(--accent); }
+
+  /* PROBLEM BAND */
+  .problem-band {
+    background: var(--ink);
+    color: var(--bg);
+    padding: 64px 40px;
+    overflow: hidden;
+  }
+  .problem-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 64px;
+    align-items: center;
+  }
+  .problem-quote {
+    font-family: var(--display);
+    font-size: clamp(22px, 2.8vw, 36px);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.25;
+    color: #fff;
+  }
+  .problem-quote span { color: var(--accent2); }
+  .problem-list {
+    display: flex; flex-direction: column; gap: 20px;
+    list-style: none;
+  }
+  .problem-item {
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .problem-icon {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    margin-top: 1px;
+  }
+  .problem-text { font-size: 14px; font-weight: 300; color: rgba(255,255,255,0.72); line-height: 1.55; }
+  .problem-text strong { color: rgba(255,255,255,0.92); font-weight: 500; }
+
+  /* CATEGORIES */
+  .categories-section { background: var(--surface); }
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    margin-top: 48px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 2px solid var(--border);
+  }
+  .cat-card {
+    background: #fff;
+    padding: 28px 24px;
+    transition: background 0.2s;
+    cursor: default;
+  }
+  .cat-card:hover { background: var(--accent-pale); }
+  .cat-icon {
+    font-size: 22px;
+    margin-bottom: 14px;
+    display: block;
+  }
+  .cat-name {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .cat-desc {
+    font-size: 13px;
+    color: var(--ink3);
+    font-weight: 300;
+    line-height: 1.5;
+  }
+  .cat-score-preview {
+    display: flex; gap: 3px;
+    margin-top: 16px;
+  }
+  .star { font-size: 12px; color: var(--surface2); }
+  .star.on { color: var(--accent); }
+
+  /* HOW IT WORKS */
+  .how-steps {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-top: 56px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .step {
+    background: #fff;
+    padding: 40px 32px;
+    position: relative;
+  }
+  .step::after {
+    content: '';
+    position: absolute;
+    top: 50%; right: -1px;
+    transform: translateY(-50%);
+    width: 1px; height: 50%;
+    background: var(--border);
+  }
+  .step:last-child::after { display: none; }
+  .step-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .step-num::before {
+    content: attr(data-n);
+    width: 22px; height: 22px;
+    background: var(--ink);
+    color: var(--bg);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .step-title {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+  .step-desc {
+    font-size: 14px;
+    color: var(--ink2);
+    font-weight: 300;
+    line-height: 1.65;
+  }
+  .step-visual {
+    margin-top: 28px;
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid var(--border);
+  }
+
+  /* MINI FORM PREVIEW */
+  .form-preview { display: flex; flex-direction: column; gap: 10px; }
+  .form-field-row {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .form-field-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; color: var(--ink3); text-transform: uppercase; }
+  .form-stars { display: flex; gap: 3px; }
+  .form-star { font-size: 14px; color: var(--accent); }
+  .form-star.off { color: var(--surface2); }
+
+  /* MINI MAP PREVIEW */
+  .mini-map {
+    height: 80px;
+    background: #E8EEF4;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mini-map-roads {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  .mini-map-zone {
+    width: 60px; height: 60px; border-radius: 50%;
+    background: rgba(26,107,60,0.3);
+    filter: blur(12px);
+    position: absolute; left: 30%; top: 20%;
+  }
+  .mini-map-zone2 {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(201,78,26,0.25);
+    filter: blur(8px);
+    position: absolute; right: 25%; bottom: 15%;
+  }
+
+  /* MINI SCORECARD */
+  .mini-scorecard { display: flex; flex-direction: column; gap: 8px; }
+  .mini-score-row { display: flex; align-items: center; gap: 8px; }
+  .mini-score-label { font-family: var(--mono); font-size: 9px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.04em; width: 70px; }
+  .mini-score-bar { flex: 1; height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .mini-score-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+  .mini-score-fill.warn { background: var(--warn); }
+  .mini-score-fill.mid { background: #D97706; }
+  .mini-score-num { font-family: var(--mono); font-size: 10px; color: var(--ink2); font-weight: 500; width: 20px; text-align: right; }
+
+  /* DATA SECTION */
+  .data-section { background: var(--bg); }
+  .data-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 56px;
+  }
+  .data-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    box-shadow: var(--shadow);
+  }
+  .data-card-label {
+    font-family: var(--mono);
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink3);
+    margin-bottom: 20px;
+  }
+  /* Bar chart */
+  .chart-bars {
+    display: flex; align-items: flex-end; gap: 8px;
+    height: 120px;
+    padding-bottom: 28px;
+    position: relative;
+  }
+  .chart-bars::after {
+    content: '';
+    position: absolute; bottom: 20px; left: 0; right: 0;
+    height: 1px; background: var(--border);
+  }
+  .bar-group { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+  .bar-col {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    min-height: 4px;
+    transition: opacity 0.2s;
+  }
+  .bar-col:hover { opacity: 0.8; }
+  .bar-label { font-family: var(--mono); font-size: 8px; letter-spacing: 0.03em; color: var(--ink3); text-transform: uppercase; text-align: center; }
+
+  /* Radar */
+  .radar-wrap {
+    display: flex; align-items: center; gap: 24px;
+  }
+  .radar-svg { flex-shrink: 0; }
+  .radar-legend { display: flex; flex-direction: column; gap: 10px; }
+  .radar-leg-item { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10px; color: var(--ink3); letter-spacing: 0.03em; }
+  .radar-leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* TRUST */
+  .trust-section { background: var(--surface); }
+  .trust-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 56px;
+  }
+  .trust-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+  }
+  .trust-metric {
+    font-family: var(--display);
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .trust-metric span { font-size: 24px; color: var(--accent); }
+  .trust-name { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink3); margin-bottom: 16px; }
+  .trust-desc { font-size: 14px; color: var(--ink2); font-weight: 300; line-height: 1.6; }
+
+  /* CTA */
+  .cta-section {
+    background: var(--ink);
+    padding: 96px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-bg-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+  .cta-inner {
+    max-width: 640px; margin: 0 auto; text-align: center;
+    position: relative;
+  }
+  .cta-title {
+    font-family: var(--display);
+    font-size: clamp(32px, 4.5vw, 58px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.0;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  .cta-title em { font-style: normal; color: var(--accent2); }
+  .cta-sub { font-size: 15px; font-weight: 300; color: rgba(255,255,255,0.6); line-height: 1.65; margin-bottom: 36px; }
+  .cta-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .btn-light {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #fff;
+    color: var(--ink);
+    font-size: 14px; font-weight: 500;
+    padding: 14px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-light:hover { background: var(--accent-pale); transform: translateY(-2px); }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    font-size: 14px; font-weight: 400;
+    padding: 14px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.18);
+    transition: border-color 0.2s, color 0.2s, transform 0.15s;
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.5); color: #fff; transform: translateY(-2px); }
+
+  /* FOOTER */
+  footer {
+    background: var(--ink);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding: 36px 40px;
+  }
+  .footer-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .footer-logo {
+    font-family: var(--display);
+    font-size: 15px; font-weight: 700; letter-spacing: -0.02em;
+    color: rgba(255,255,255,0.8);
+    display: flex; align-items: center; gap: 7px;
+    text-decoration: none;
+  }
+  .footer-logo-dot { width: 6px; height: 6px; background: var(--accent2); border-radius: 50%; }
+  .footer-copy { font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,0.3); letter-spacing: 0.03em; }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a { font-size: 13px; color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.2s; }
+  .footer-links a:hover { color: rgba(255,255,255,0.8); }
+
+  /* SCROLL ANIMATIONS */
+  .reveal {
+    opacity: 0; transform: translateY(20px);
+    transition: opacity 0.55s ease, transform 0.55s ease;
+  }
+  .reveal.visible { opacity: 1; transform: none; }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+
+  @media (max-width: 900px) {
+    nav { padding: 0 20px; }
+    .nav-links { display: none; }
+    .hero { padding: 60px 20px 0; }
+    .hero-inner { padding: 60px 0 40px; }
+    section { padding: 64px 20px; }
+    .problem-inner { grid-template-columns: 1fr; gap: 40px; }
+    .categories-grid { grid-template-columns: repeat(2, 1fr); }
+    .how-steps { grid-template-columns: 1fr; }
+    .step::after { display: none; }
+    .data-grid { grid-template-columns: 1fr; }
+    .trust-grid { grid-template-columns: 1fr; }
+    .footer-inner { flex-direction: column; gap: 16px; text-align: center; }
+    .footer-links { flex-wrap: wrap; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo"><span class="nav-logo-dot"></span>NeighbourlyNG</a>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#categories">Categories</a></li>
+    <li><a href="#data">Data</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#" class="nav-cta">Explore Map</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span class="hero-badge-dot"></span>
+      Open-access · Lagos · Nigeria
+    </div>
+    <h1 class="hero-headline">
+      Know your<br>next<br><em>neighbourhood.</em>
+    </h1>
+    <p class="hero-sub">
+      Crowd-sourced intelligence on power supply, security, flooding, roads, and more — so you stop discovering Lagos' realities after you move in.
+    </p>
+    <div class="hero-actions">
+      <a href="#" class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L7 13M1 7L13 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Explore Map
+      </a>
+      <a href="#" class="btn-secondary">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1C3.686 1 1 3.686 1 7s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6z" stroke="currentColor" stroke-width="1.3"/><path d="M7 5v4M7 9.5v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Submit a Review
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-num">8</span>
+        <span class="stat-label">Rating Categories</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">20+</span>
+        <span class="stat-label">LGAs Covered</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">100%</span>
+        <span class="stat-label">Free Access</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">OSS</span>
+        <span class="stat-label">Open Source</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO FLOATING MAP CARD -->
+  <div class="hero-visual">
+    <div class="map-card">
+      <div class="map-card-header">
+        <span class="map-card-title">Lagos Neighbourhood Map</span>
+        <span class="map-card-badge">Live</span>
+      </div>
+      <div class="map-body">
+        <div class="map-roads"></div>
+        <div class="zone zone-green"></div>
+        <div class="zone zone-orange"></div>
+        <div class="zone zone-blue"></div>
+        <div class="zone zone-yellow"></div>
+
+        <!-- Scorecard overlay -->
+        <div class="map-scorecard">
+          <div class="scorecard-area">Lekki Phase 1</div>
+          <div class="scorecard-row">
+            <span class="scorecard-label">Power</span>
+            <div class="scorecard-bar-wrap">
+              <div class="scorecard-bar"><div class="scorecard-bar-fill" style="width:82%"></div></div>
+              <span class="scorecard-val">4.1</span>
+            </div>
+          </div>
+          <div class="scorecard-row">
+            <span class="scorecard-label">Security</span>
+            <div class="scorecard-bar-wrap">
+              <div class="scorecard-bar"><div class="scorecard-bar-fill" style="width:74%"></div></div>
+              <span class="scorecard-val">3.7</span>
+            </div>
+          </div>
+          <div class="scorecard-row">
+            <span class="scorecard-label">Flooding</span>
+            <div class="scorecard-bar-wrap">
+              <div class="scorecard-bar"><div class="scorecard-bar-fill warn" style="width:38%"></div></div>
+              <span class="scorecard-val">1.9</span>
+            </div>
+          </div>
+          <div class="scorecard-row">
+            <span class="scorecard-label">Roads</span>
+            <div class="scorecard-bar-wrap">
+              <div class="scorecard-bar"><div class="scorecard-bar-fill mid" style="width:60%"></div></div>
+              <span class="scorecard-val">3.0</span>
+            </div>
+          </div>
+          <div class="scorecard-row">
+            <span class="scorecard-label">Transport</span>
+            <div class="scorecard-bar-wrap">
+              <div class="scorecard-bar"><div class="scorecard-bar-fill" style="width:66%"></div></div>
+              <span class="scorecard-val">3.3</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Map pins -->
+        <div class="map-pin" style="top:38px;left:52px">
+          <div class="map-pin-bubble">Surulere <span class="score">3.8</span></div>
+          <div class="map-pin-dot"></div>
+        </div>
+        <div class="map-pin" style="bottom:42px;left:90px">
+          <div class="map-pin-bubble">Mushin <span class="score warn">2.1</span></div>
+          <div class="map-pin-dot warn"></div>
+        </div>
+      </div>
+      <div class="map-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>High Score (4–5)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#D97706"></div>Mid (3–4)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--warn)"></div>Low (1–3)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM BAND -->
+<div class="problem-band">
+  <div class="problem-inner">
+    <div>
+      <p class="problem-quote">Lagos has 15 million residents. <span>Zero reliable, public data</span> on what it's actually like to live there.</p>
+    </div>
+    <ul class="problem-list">
+      <li class="problem-item">
+        <div class="problem-icon">⚡</div>
+        <div class="problem-text"><strong>Power supply is invisible.</strong> Residents discover NEPA schedules only after signing their lease.</div>
+      </li>
+      <li class="problem-item">
+        <div class="problem-icon">🌊</div>
+        <div class="problem-text"><strong>Flooding devastates block-by-block.</strong> Adjacent streets face radically different rainy seasons.</div>
+      </li>
+      <li class="problem-item">
+        <div class="problem-icon">🏠</div>
+        <div class="problem-text"><strong>Estate agents have no incentive to share bad news.</strong> Word-of-mouth only travels so far.</div>
+      </li>
+      <li class="problem-item">
+        <div class="problem-icon">📡</div>
+        <div class="problem-text"><strong>Network strength varies per street.</strong> Critical for remote workers choosing where to live.</div>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<!-- CATEGORIES -->
+<section class="categories-section" id="categories">
+  <div class="container">
+    <p class="section-label reveal">What we measure</p>
+    <h2 class="section-title reveal reveal-delay-1">8 categories. <em>Everything</em><br>that actually matters.</h2>
+    <div class="categories-grid reveal reveal-delay-2">
+      <div class="cat-card">
+        <span class="cat-icon">⚡</span>
+        <div class="cat-name">Power Supply</div>
+        <div class="cat-desc">NEPA/PHCN reliability, hours per day, generator dependency levels.</div>
+        <div class="cat-score-preview">
+          <span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star">★</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <span class="cat-icon">🛡️</span>
+        <div class="cat-name">Security</div>
+        <div class="cat-desc">Street safety, patrol presence, incident frequency, estate security.</div>
+        <div class="cat-score-preview">
+          <span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <span class="cat-icon">🌊</span>
+        <div class="cat-name">Flood Risk</div>
+        <div class="cat-desc">Rainy season impact, drainage quality, historical flood depth.</div>
+        <div class="cat-score-preview">
+          <span class="star on" style="color:var(--warn)">★</span><span class="star on" style="color:var(--warn)">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <span class="cat-icon">🛣️</span>
+        <div class="cat-name">Road Conditions</div>
+        <div class="cat-desc">Pothole density, commute impact, vehicle wear risk, surface quality.</div>
+        <div class="cat-score-preview">
+          <span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <span class="cat-icon">🛒</span>
+        <div class="cat-name">Market Access</div>
+        <div class="cat-desc">Proximity to markets, supermarkets, food vendors, daily essentials.</div>
+        <div class="cat-score-preview">
+          <span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star">★</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <span class="cat-icon">🚌</span>
+        <div class="cat-name">Transport Cost</div>
+        <div class="cat-desc">Danfo, BRT, ride-hailing accessibility and typical fare ranges.</div>
+        <div class="cat-score-preview">
+          <span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star">★</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <span class="cat-icon">📶</span>
+        <div class="cat-name">Network Strength</div>
+        <div class="cat-desc">MTN, Airtel, Glo, 9mobile — per-carrier signal rating by area.</div>
+        <div class="cat-score-preview">
+          <span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+      </div>
+      <div class="cat-card">
+        <span class="cat-icon">💧</span>
+        <div class="cat-name">Water Supply</div>
+        <div class="cat-desc">Public water access, tanker dependency, pressure consistency.</div>
+        <div class="cat-score-preview">
+          <span class="star on" style="color:#D97706">★</span><span class="star on" style="color:#D97706">★</span><span class="star on" style="color:#D97706">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <p class="section-label reveal">Process</p>
+    <h2 class="section-title reveal reveal-delay-1">How <em>NeighbourlyNG</em><br>works.</h2>
+    <div class="how-steps">
+      <div class="step reveal">
+        <div class="step-num" data-n="1">Step one</div>
+        <div class="step-title">Residents submit structured ratings</div>
+        <div class="step-desc">A mobile-first, multi-step form walks you through each category. One review per neighbourhood per 90 days prevents spam and keeps data fresh.</div>
+        <div class="step-visual">
+          <div class="form-preview">
+            <div class="form-field-row">
+              <span class="form-field-label">Power Supply</span>
+              <div class="form-stars">
+                <span class="form-star">★</span><span class="form-star">★</span><span class="form-star">★</span><span class="form-star">★</span><span class="form-star off">★</span>
+              </div>
+            </div>
+            <div class="form-field-row">
+              <span class="form-field-label">Security</span>
+              <div class="form-stars">
+                <span class="form-star">★</span><span class="form-star">★</span><span class="form-star">★</span><span class="form-star">★</span><span class="form-star">★</span>
+              </div>
+            </div>
+            <div class="form-field-row">
+              <span class="form-field-label">Flood Risk</span>
+              <div class="form-stars">
+                <span class="form-star" style="color:var(--warn)">★</span><span class="form-star" style="color:var(--warn)">★</span><span class="form-star off">★</span><span class="form-star off">★</span><span class="form-star off">★</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="step reveal reveal-delay-1">
+        <div class="step-num" data-n="2">Step two</div>
+        <div class="step-title">Scores aggregate into heatmaps</div>
+        <div class="step-desc">MongoDB geospatial queries compute averages across bounding boxes. Leaflet.js renders choropleth heatmaps filterable by category and score threshold.</div>
+        <div class="step-visual">
+          <div class="mini-map">
+            <div class="mini-map-roads"></div>
+            <div class="mini-map-zone"></div>
+            <div class="mini-map-zone2"></div>
+          </div>
+        </div>
+      </div>
+      <div class="step reveal reveal-delay-2">
+        <div class="step-num" data-n="3">Step three</div>
+        <div class="step-title">Renters make informed decisions</div>
+        <div class="step-desc">Neighborhood profile pages show full scorecards, review history, and trend over time — enabling data-driven decisions, for the first time, without estate agents.</div>
+        <div class="step-visual">
+          <div class="mini-scorecard">
+            <div class="mini-score-row">
+              <span class="mini-score-label">Power</span>
+              <div class="mini-score-bar"><div class="mini-score-fill" style="width:82%"></div></div>
+              <span class="mini-score-num">4.1</span>
+            </div>
+            <div class="mini-score-row">
+              <span class="mini-score-label">Security</span>
+              <div class="mini-score-bar"><div class="mini-score-fill" style="width:74%"></div></div>
+              <span class="mini-score-num">3.7</span>
+            </div>
+            <div class="mini-score-row">
+              <span class="mini-score-label">Flooding</span>
+              <div class="mini-score-bar"><div class="mini-score-fill warn" style="width:38%"></div></div>
+              <span class="mini-score-num">1.9</span>
+            </div>
+            <div class="mini-score-row">
+              <span class="mini-score-label">Roads</span>
+              <div class="mini-score-bar"><div class="mini-score-fill mid" style="width:60%"></div></div>
+              <span class="mini-score-num">3.0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DATA VISUALISATION -->
+<section class="data-section" id="data">
+  <div class="container">
+    <p class="section-label reveal">Data Intelligence</p>
+    <h2 class="section-title reveal reveal-delay-1">Structured data.<br><em>Real insight.</em></h2>
+    <div class="data-grid">
+      <div class="data-card reveal reveal-delay-1">
+        <div class="data-card-label">Average Score by Category — Lagos Aggregate</div>
+        <div class="chart-bars">
+          <div class="bar-group">
+            <div class="bar-col" style="height:72%;background:var(--data1);border-radius:4px 4px 0 0"></div>
+            <span class="bar-label">Power</span>
+          </div>
+          <div class="bar-group">
+            <div class="bar-col" style="height:85%;background:var(--data1);border-radius:4px 4px 0 0"></div>
+            <span class="bar-label">Security</span>
+          </div>
+          <div class="bar-group">
+            <div class="bar-col" style="height:42%;background:var(--data3);border-radius:4px 4px 0 0"></div>
+            <span class="bar-label">Flood</span>
+          </div>
+          <div class="bar-group">
+            <div class="bar-col" style="height:60%;background:#D97706;border-radius:4px 4px 0 0"></div>
+            <span class="bar-label">Roads</span>
+          </div>
+          <div class="bar-group">
+            <div class="bar-col" style="height:78%;background:var(--data1);border-radius:4px 4px 0 0"></div>
+            <span class="bar-label">Market</span>
+          </div>
+          <div class="bar-group">
+            <div class="bar-col" style="height:65%;background:var(--data2);border-radius:4px 4px 0 0"></div>
+            <span class="bar-label">Transport</span>
+          </div>
+          <div class="bar-group">
+            <div class="bar-col" style="height:56%;background:var(--data4);border-radius:4px 4px 0 0"></div>
+            <span class="bar-label">Network</span>
+          </div>
+          <div class="bar-group">
+            <div class="bar-col" style="height:48%;background:var(--data3);border-radius:4px 4px 0 0"></div>
+            <span class="bar-label">Water</span>
+          </div>
+        </div>
+      </div>
+      <div class="data-card reveal reveal-delay-2">
+        <div class="data-card-label">Neighbourhood Radar — Lekki Phase 1 vs. Mushin</div>
+        <div class="radar-wrap">
+          <svg class="radar-svg" width="180" height="180" viewBox="0 0 180 180">
+            <!-- Grid rings -->
+            <polygon points="90,20 148,55 148,125 90,160 32,125 32,55" fill="none" stroke="var(--border)" stroke-width="1"/>
+            <polygon points="90,40 136,65 136,115 90,140 44,115 44,65" fill="none" stroke="var(--border)" stroke-width="1"/>
+            <polygon points="90,60 124,75 124,105 90,120 56,105 56,75" fill="none" stroke="var(--border)" stroke-width="1"/>
+            <polygon points="90,78 112,86 112,94 90,102 68,94 68,86" fill="none" stroke="var(--border)" stroke-width="1"/>
+            <!-- Axes -->
+            <line x1="90" y1="20" x2="90" y2="160" stroke="var(--border)" stroke-width="1"/>
+            <line x1="32" y1="55" x2="148" y2="125" stroke="var(--border)" stroke-width="1"/>
+            <line x1="148" y1="55" x2="32" y2="125" stroke="var(--border)" stroke-width="1"/>
+            <!-- Lekki (green) - 4.1/5 pwr, 3.7/5 sec, 1.9/5 fld, 3.0/5 rds, 3.3/5 trans, 4.0/5 mkt -->
+            <polygon
+              points="90,34 137,69 130,108 90,127 50,108 43,63"
+              fill="rgba(26,107,60,0.15)" stroke="var(--accent)" stroke-width="2"/>
+            <!-- Mushin (orange) - 2.5/5 pwr, 2.1/5 sec, 3.8/5 fld, 2.0/5 rds, 4.2/5 trans, 4.5/5 mkt -->
+            <polygon
+              points="90,68 120,72 118,112 90,122 64,96 60,78"
+              fill="rgba(201,78,26,0.12)" stroke="var(--warn)" stroke-width="2" stroke-dasharray="4 3"/>
+            <!-- Labels -->
+            <text x="90" y="14" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--ink3)">Power</text>
+            <text x="156" y="52" text-anchor="start" font-family="var(--mono)" font-size="8" fill="var(--ink3)">Security</text>
+            <text x="156" y="130" text-anchor="start" font-family="var(--mono)" font-size="8" fill="var(--ink3)">Market</text>
+            <text x="90" y="173" text-anchor="middle" font-family="var(--mono)" font-size="8" fill="var(--ink3)">Transport</text>
+            <text x="24" y="130" text-anchor="end" font-family="var(--mono)" font-size="8" fill="var(--ink3)">Roads</text>
+            <text x="24" y="52" text-anchor="end" font-family="var(--mono)" font-size="8" fill="var(--ink3)">Flood</text>
+          </svg>
+          <div class="radar-legend">
+            <div class="radar-leg-item"><div class="radar-leg-dot" style="background:var(--accent)"></div>Lekki Phase 1</div>
+            <div class="radar-leg-item"><div class="radar-leg-dot" style="background:var(--warn)"></div>Mushin</div>
+            <div style="height:1px;background:var(--border);margin:4px 0"></div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);line-height:1.6">Outer ring = 5.0<br>Inner ring = 1.0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST METRICS -->
+<section class="trust-section" id="about">
+  <div class="container">
+    <p class="section-label reveal">Why it works</p>
+    <h2 class="section-title reveal reveal-delay-1">Built for trust.<br><em>Designed to scale.</em></h2>
+    <div class="trust-grid">
+      <div class="trust-card reveal">
+        <div class="trust-metric">90<span>d</span></div>
+        <div class="trust-name">Review Cooldown</div>
+        <div class="trust-desc">One review per user per neighbourhood per 90 days. Rate limiting and JWT auth prevent coordinated abuse while keeping data fresh.</div>
+      </div>
+      <div class="trust-card reveal reveal-delay-1">
+        <div class="trust-metric">2d<span>↗</span></div>
+        <div class="trust-name">Geospatial Index</div>
+        <div class="trust-desc">MongoDB 2dsphere indexes on coordinates enable millisecond bounding-box queries. GeoJSON polygon storage for LGA boundaries.</div>
+      </div>
+      <div class="trust-card reveal reveal-delay-2">
+        <div class="trust-metric">0<span>₦</span></div>
+        <div class="trust-name">Free Forever</div>
+        <div class="trust-desc">NeighbourlyNG is open-access and free for all renters. OSM tile layers, open-source stack. No paywalls, no estate agent partnerships.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-bg-grid"></div>
+  <div class="cta-inner">
+    <h2 class="cta-title">Stop guessing.<br><em>Start knowing.</em></h2>
+    <p class="cta-sub">Join thousands of Lagos renters making smarter housing decisions — or contribute your own neighbourhood knowledge to the platform.</p>
+    <div class="cta-actions">
+      <a href="#" class="btn-light">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1 0 10 0A5 5 0 0 0 2 7z" stroke="currentColor" stroke-width="1.3"/><path d="M7 4.5V7l1.5 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Explore the Map
+      </a>
+      <a href="#" class="btn-ghost">Submit a Review →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <a href="#" class="footer-logo"><span class="footer-logo-dot"></span>NeighbourlyNG</a>
+    <div class="footer-links">
+      <a href="#">Map</a>
+      <a href="#">Submit Review</a>
+      <a href="#">API Docs</a>
+      <a href="#">GitHub</a>
+      <a href="#">About</a>
+    </div>
+    <span class="footer-copy">© 2025 NeighbourlyNG. Open Source.</span>
+  </div>
+</footer>
+
+<script>
+  // Intersection observer for scroll reveals
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Animate stat counters
+  function animateCount(el, target, suffix='', duration=1200) {
+    const start = performance.now();
+    const startVal = 0;
+    const update = (now) => {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(startVal + (target - startVal) * ease) + suffix;
+      if (t < 1) requestAnimationFrame(update);
+    };
+    requestAnimationFrame(update);
+  }
+
+  // Simple category card hover ripple
+  document.querySelectorAll('.cat-card').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      card.style.transition = 'background 0.2s, transform 0.2s';
+      card.style.transform = 'translateY(-2px)';
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+    });
+  });
+</script>
+</body>
+</html>
