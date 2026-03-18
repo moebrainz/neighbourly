@@ -35,7 +35,7 @@ export default function Hero() {
             </svg>
             Explore Data
           </Link>
-          <Link href="/neighbourhood" className="btn-secondary">
+          <Link href="/form" className="btn-secondary">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path
                 d="M7 1C3.686 1 1 3.686 1 7s2.686 6 6 6 6-2.686 6-6-2.686-6-6-6z"

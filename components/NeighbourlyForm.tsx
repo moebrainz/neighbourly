@@ -1,7 +1,8 @@
 "use client";
 
 import type { FormData, NetworkCarrier, Step } from "@/types/form";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import * as Toast from "@radix-ui/react-toast";
 import NetworkRating from "./NetworkRating";
 import StarRating from "./StarRating";
 
@@ -62,8 +63,92 @@ export default function NeighbourlyForm() {
   const [animating, setAnimating] = useState(false);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    setIsMounted(true);
+    const savedData = localStorage.getItem("neighbourlyFormData");
+    if (savedData) {
+      try {
+        setFormData(JSON.parse(savedData));
+      } catch (e) {
+        // ignore parse error
+      }
+    }
+    const savedStep = localStorage.getItem("neighbourlyFormStep");
+    if (savedStep) {
+      const parsed = parseInt(savedStep, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= STEPS.length) {
+        setStep(parsed);
+      }
+    }
+  }, []);
+
+  // Save to localStorage when data changes
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("neighbourlyFormData", JSON.stringify(formData));
+    }
+  }, [formData, isMounted]);
+
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem("neighbourlyFormStep", step.toString());
+    }
+  }, [step, isMounted]);
+
+  useEffect(() => {
+    const el = document.getElementById(`step-${step}`);
+    if (el) {
+      el.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+  }, [step]);
+
+  useEffect(() => {
+    const searchEstate = async () => {
+      if (!formData.estate || formData.estate.length < 3 || !showSuggestions) {
+        setSuggestions([]);
+        return;
+      }
+      setIsSearching(true);
+      try {
+        const query = encodeURIComponent(formData.estate);
+        const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?country=ng&limit=10&types=neighborhood,locality,place,address,poi&access_token=${token}`
+        );
+        const data = await res.json();
+        if (data.features) {
+
+          console.log(data.features);
+          setSuggestions(data.features);
+        }
+      } catch (err) {
+        console.error("Error fetching locations from Mapbox:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      searchEstate();
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [formData.estate, showSuggestions]);
 
   const update = (key: keyof FormData, val: FormData[keyof FormData]) =>
     setFormData((prev) => ({ ...prev, [key]: val }));
@@ -97,14 +182,41 @@ export default function NeighbourlyForm() {
     return true;
   };
 
-  const handleSubmit = () => {
-    setSubmitted(true);
+  const clearStorage = () => {
+    localStorage.removeItem("neighbourlyFormData");
+    localStorage.removeItem("neighbourlyFormStep");
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setSubmitError("");
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to submit review. Please try again.");
+      }
+
+      setSubmitted(true);
+      clearStorage();
+    } catch (error: any) {
+      setSubmitError(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
     setSubmitted(false);
     setStep(1);
     setFormData(initialFormData);
+    clearStorage();
   };
 
   const progress = ((step - 1) / (STEPS.length - 1)) * 100;
@@ -151,8 +263,9 @@ export default function NeighbourlyForm() {
   }
 
   return (
-    <div className="app">
-      {/* Header */}
+    <Toast.Provider swipeDirection="down">
+      <div className="app">
+        {/* Header */}
       <header className="header">
         <div className="logo">
           <a href="/" className="logo-link">
@@ -173,6 +286,7 @@ export default function NeighbourlyForm() {
         {STEPS.map((s) => (
           <div
             key={s.id}
+            id={`step-${s.id}`}
             className={`step-chip ${step === s.id ? "current" : step > s.id ? "done" : ""}`}
           >
             <span className="step-num">{step > s.id ? "✓" : s.short}</span>
@@ -210,7 +324,7 @@ export default function NeighbourlyForm() {
               </div>
             </div>
 
-            <div className="field">
+            <div className="field" style={{ position: "relative" }}>
               <label>
                 Estate / Area Name <span className="req">*</span>
               </label>
@@ -218,8 +332,65 @@ export default function NeighbourlyForm() {
                 type="text"
                 placeholder="e.g. Iyana Ipaja Estate, Magodo Phase 2"
                 value={formData.estate}
-                onChange={(e) => update("estate", e.target.value)}
+                onChange={(e) => {
+                  update("estate", e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => {
+                  setTimeout(() => setShowSuggestions(false), 200);
+                }}
               />
+              
+              {showSuggestions && formData.estate.length >= 3 && (
+                <div style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  background: "#fff",
+                  border: "1px solid #e0ded8",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  zIndex: 50,
+                  maxHeight: "200px",
+                  overflowY: "auto",
+                  marginTop: "4px"
+                }}>
+                  {isSearching ? (
+                    <div style={{ padding: "12px", fontSize: "13px", color: "#888", textAlign: "center" }}>
+                      Searching...
+                    </div>
+                  ) : suggestions.length > 0 ? (
+                    suggestions.map((s, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          padding: "10px 14px",
+                          borderBottom: i < suggestions.length - 1 ? "1px solid #f0eee8" : "none",
+                          fontSize: "14px",
+                          cursor: "pointer",
+                          color: "#1a1a18"
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          update("estate", s.text);
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        <div style={{ fontWeight: 500 }}>{s.text}</div>
+                        <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>
+                          {s.place_name.replace(`${s.text}, `, "")}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: "12px", fontSize: "13px", color: "#888", textAlign: "center" }}>
+                      No results found
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="field">
@@ -440,19 +611,19 @@ export default function NeighbourlyForm() {
               formData.airtel ||
               formData.glo ||
               formData.mobile9) > 0 && (
-              <div className="summary-network">
-                <div className="sum-section-title">Network</div>
-                <div className="network-summary-row">
-                  {carriers
-                    .filter(({ key }) => formData[key] > 0)
-                    .map(({ key, label }) => (
-                      <span key={key} className="network-badge">
-                        {label} {"★".repeat(formData[key])}
-                      </span>
-                    ))}
+                <div className="summary-network">
+                  <div className="sum-section-title">Network</div>
+                  <div className="network-summary-row">
+                    {carriers
+                      .filter(({ key }) => formData[key] > 0)
+                      .map(({ key, label }) => (
+                        <span key={key} className="network-badge">
+                          {label} {"★".repeat(formData[key])}
+                        </span>
+                      ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             <div className="submit-notice">
               <span>🔒</span>
@@ -478,9 +649,15 @@ export default function NeighbourlyForm() {
               Continue →
             </button>
           ) : (
-            <button className="btn-submit" onClick={handleSubmit}>
-              Submit Review
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "auto" }}>
+              <button 
+                className={`btn-submit ${isSubmitting ? "disabled" : ""}`} 
+                onClick={handleSubmit} 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Submitting..." : "Submit Review"}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -489,6 +666,27 @@ export default function NeighbourlyForm() {
       <div className="footer-note">
         Free & open data · Built for Lagos renters · No ads, no agents
       </div>
+
+      <Toast.Root
+        className="ToastRoot"
+        open={!!submitError}
+        onOpenChange={(open) => {
+          if (!open) setSubmitError("");
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <span style={{ color: "#d94f3d", fontSize: "16px" }}>⚠️</span>
+          <Toast.Description className="ToastDescription">
+            {submitError}
+          </Toast.Description>
+        </div>
+        <Toast.Action className="ToastAction" asChild altText="Close notification">
+          <button className="ToastCloseBtn" onClick={() => setSubmitError("")}>×</button>
+        </Toast.Action>
+      </Toast.Root>
+      
+      <Toast.Viewport className="ToastViewport" />
     </div>
+    </Toast.Provider>
   );
 }
